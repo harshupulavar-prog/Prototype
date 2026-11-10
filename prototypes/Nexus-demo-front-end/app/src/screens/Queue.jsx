@@ -78,9 +78,9 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
       <div className="tabs" role="tablist" aria-label="Filter the queue">
         {[
           ['all', 'All Buckets', rows.length],
-          ['sma0', 'SMA-0 (1–30 DPD)', sma0],
-          ['sma1', 'SMA-1 (31–60 DPD)', sma1],
-          ['sma2', 'SMA-2 (61–90 DPD)', sma2],
+          ['sma0', 'SMA-0 (1 to 30 DPD)', sma0],
+          ['sma1', 'SMA-1 (31 to 60 DPD)', sma1],
+          ['sma2', 'SMA-2 (61 to 90 DPD)', sma2],
           ['npa', 'NPA (90+ DPD)', npas],
           ['predue', 'Pre-due (0 DPD)', predue],
           ['team', 'With your team', humans]

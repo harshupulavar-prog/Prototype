@@ -8,7 +8,7 @@ export default function Users({ settings, P }) {
       <div className="row-gap" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
         <p className="lead muted" style={{ margin: 0 }}>Everyone sees only what their role needs. Sign-in uses your existing company login.</p>
         <a
-          href={`mailto:${settings.contact || 'contact@demo.kaara.ai'}?subject=${encodeURIComponent('Talk to Kaara - Enterprise SSO & Access')}`}
+          href={`mailto:${settings.contact || 'contact@demo.kaara.ai'}?subject=${encodeURIComponent('Talk to Kaara, Enterprise SSO & Access')}`}
           className="btn btn-outline btn-sm"
         >
           <Icon name="mail" size={14} /> Talk to Kaara
