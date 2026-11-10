@@ -5,6 +5,8 @@ import { Src } from '../components/Sources.jsx';
 
 const MESSAGE_CHANNELS = ['WhatsApp', 'SMS', 'Text', 'Email'];
 const REASONS = ['Borrower asked for a call', 'Recent complaint on file', 'Relationship account'];
+const ALTERNATIVE_CHANNELS = ['WhatsApp', 'SMS', 'AI voice', 'Email'];
+const ALTERNATIVE_SCRIPTS = ['Softer payment reminder', 'Offer a payment plan', 'Ask for a preferred date'];
 
 export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setMode, changedTo, setChangedTo, approved, bulk, approveRow }) {
   const { US, prospect } = settings;
@@ -15,6 +17,8 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
   const amt = money(r.overdue || r.emi);
   const [english, setEnglish] = useState(false);
   const [reason, setReason] = useState('');
+  const [alternativeChannel, setAlternativeChannel] = useState('');
+  const [alternativeScript, setAlternativeScript] = useState('');
 
   const entry = approved[sel];
   const isApproved = !r.human && (bulk || !!entry);
@@ -30,18 +34,19 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
   const memoryExamples = r.memoryExamples || getCaseMemoryExamples(r, D.hfc, US);
 
   const isMsgChannel = MESSAGE_CHANNELS.includes(r.channel);
+  const isFieldVisit = /^field\b/i.test(r.channel || '');
   const msgChannel = isMsgChannel ? r.channel : US ? 'Text' : r.code === 'en' ? 'SMS' : 'WhatsApp';
   const msg = (english ? D.messageEn(r.code) : D.message(r.code)).replace('{n}', first).replace('{a}', amt);
 
   const timeline = [
-    { text: 'Flagged at ' + r.risk + '% risk', when: timeLabel(US, 3, 12) + ' · model ews-v3.2', tone: 'warn' },
+    { text: 'Flagged at ' + r.risk + '% risk', when: (r.flaggedAt || timeLabel(US, 3, 12)) + ' · model ews-v3.2', tone: 'warn' },
     {
       text: r.policyReason
         ? 'Simulation: 94% cure with soft-touch · Policy rule: Escalate to manager review'
         : r.human
         ? 'Sent to your team: ' + r.intent.toLowerCase()
         : 'Plan proposed: ' + r.action.toLowerCase(),
-      when: timeLabel(US, 6, 5) + ' · Nexus NBA',
+      when: (r.decisionAt || timeLabel(US, 6, 5)) + ' · Nexus NBA',
       tone: r.human || r.policyReason ? 'warn' : 'muted'
     }
   ];
@@ -54,7 +59,9 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
         : isEsc
         ? 'Escalation confirmed: Case forwarded to manager review'
         : 'Approved by you: ' + action,
-      when: (entry && entry.at) || (bulk ? 'with the overnight batch' : 'today'),
+      when: isEsc && r.escalationAt
+        ? r.escalationAt + ' · policy guardrail'
+        : (entry && entry.at) || (bulk ? 'with the overnight batch' : 'today'),
       tone: 'accent',
       fresh: true
     });
@@ -77,11 +84,22 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
     setSel(n);
     setEnglish(false);
     setReason('');
+    setAlternativeChannel('');
+    setAlternativeScript('');
   };
 
   const confirmChange = () => {
     if (!reason.trim()) return;
     approveRow(sel, { action: changedTo, reason: reason.trim() });
+    setMode('idle');
+  };
+
+  const confirmReject = () => {
+    if (!alternativeChannel || !alternativeScript || !reason.trim()) return;
+    approveRow(sel, {
+      action: `${alternativeChannel}: ${alternativeScript}`,
+      reason: reason.trim()
+    });
     setMode('idle');
   };
 
@@ -227,7 +245,10 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
                 </span>
               </div>
             </div>
-            <p className="plan-line">{r.action}, by {r.channel} in {r.lang}.</p>
+            <p className="plan-line">
+              {r.action}, by {r.channel} in {r.lang}.
+              {isFieldVisit && <span className="sub"> Field visit plan applies to this case.</span>}
+            </p>
             {r.secondaryAction && (
               <p className="muted small" style={{ margin: '4px 0 0' }}>Staged plan: {r.secondaryAction}</p>
             )}
@@ -289,12 +310,19 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
                   <button type="button" className="btn btn-outline" onClick={() => setMode('changing')}>
                     Change plan
                   </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setReason(''); setMode('rejecting'); }}>
+                    Reject AI recommendation
+                  </button>
 
                   {r.policyReason && (
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      onClick={() => approveRow(sel, { action: r.secondaryAction || 'Soft-touch AI call with split EMI' })}
+                      onClick={() => {
+                        setChangedTo(r.secondaryAction || 'Soft-touch AI call with split EMI');
+                        setReason('');
+                        setMode('changed');
+                      }}
                       title="Override manager escalation and release soft-touch call directly"
                     >
                       Override & release soft-touch call (94% cure)
@@ -311,6 +339,50 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
                   {D.altActions.map((a) => (
                     <button key={a} type="button" className="btn btn-outline btn-sm" onClick={() => { setChangedTo(a); setMode('changed'); }}>{a}</button>
                   ))}
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode('idle')}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {!r.human && !isApproved && mode === 'rejecting' && (
+              <div className="callout nx-in col-gap">
+                <span><strong>Choose an alternative.</strong> The AI recommendation will be rejected and your channel and script will be scheduled instead.</span>
+                <div className="col-gap">
+                  <span className="eyebrow">Channel</span>
+                  <div className="row-gap">
+                    {ALTERNATIVE_CHANNELS.map((channel) => (
+                      <button key={channel} type="button" className={'chip-choice' + (alternativeChannel === channel ? ' on' : '')} onClick={() => setAlternativeChannel(channel)}>
+                        {channel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="col-gap">
+                  <span className="eyebrow">Script</span>
+                  <div className="row-gap">
+                    {ALTERNATIVE_SCRIPTS.map((script) => (
+                      <button key={script} type="button" className={'chip-choice' + (alternativeScript === script ? ' on' : '')} onClick={() => setAlternativeScript(script)}>
+                        {script}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="field">
+                  <span className="eyebrow">Decision note <span className="required-mark">*</span></span>
+                  <input
+                    className="input"
+                    placeholder="Explain why you chose this alternative"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && confirmReject()}
+                    aria-label="Mandatory decision note"
+                    required
+                  />
+                </label>
+                <div className="row-gap">
+                  <button type="button" className="btn btn-primary btn-sm" disabled={!alternativeChannel || !alternativeScript || !reason.trim()} onClick={confirmReject}>
+                    Reject and schedule alternative
+                  </button>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode('idle')}>Cancel</button>
                 </div>
               </div>
@@ -381,8 +453,14 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
                 ['Borrower segment', r.segment || 'Thin file'],
                 ['Bureau score', r.bureauScore || 'No / limited bureau history'],
                 ['Preferred channel', r.channel + ' · ' + r.lang],
-                ['Consent', 'On file'],
-                ['Contact window', D.contactWindow],
+                ['Promise to pay', r.promiseToPay],
+                ['Last contact attempt', r.lastContactAttempt],
+                ['Last contact outcome', r.lastContactOutcome],
+                ['Contactability', r.contactability],
+                ['Preferred language', r.preferredLanguage],
+                ['Consent status', r.consentStatus],
+                ['Permitted call window', r.bucket === 'NPA' ? 'No automated calls · manager review' : D.contactWindow],
+                ['Do-not-contact flags', r.doNotContactFlags],
                 ...(r.property ? [['Property', r.property], ['Loan-to-value', r.ltv + '%']] : [])
               ].map(([k, v]) => (
                 <div key={k} className="fact">

@@ -56,6 +56,9 @@ const ROWS_IN = [
     outstanding: 2840000,
     risk: 54,
     priorityScore: 54,
+    flaggedAt: '09:12',
+    decisionAt: '09:28',
+    escalationAt: '09:45',
     segment: 'Thin file',
     bureauScore: 'No / limited bureau history',
     creditScore: 'No / limited bureau history',
@@ -294,6 +297,9 @@ const ROWS_US = [
     outstanding: 28400,
     risk: 54,
     priorityScore: 54,
+    flaggedAt: '09:12 AM',
+    decisionAt: '09:28 AM',
+    escalationAt: '09:45 AM',
     segment: 'Thin file',
     bureauScore: 'No / limited bureau history',
     creditScore: 'No / limited bureau history',
@@ -555,7 +561,8 @@ const FEED_US = [
 export function normalizeRow(r) {
   // Label 1 to 30 DPD as SMA-0 and keep the header and bucket consistent
   const dpdStr = String(r.dpd || '');
-  const match = dpdStr.match(/(\d+)\s*(?:dpd|days?)/i);
+  const rangeMatch = dpdStr.match(/dpd\s*(\d+)\s*(?:to|-|\s+)\s*(\d+)/i);
+  const match = dpdStr.match(/(\d+)\s*(?:dpd|days?)/i) || (rangeMatch && [rangeMatch[0], rangeMatch[1]]);
   let bucket = r.bucket;
   let human = r.human;
   let action = r.action;
@@ -574,6 +581,11 @@ export function normalizeRow(r) {
     } else if (days > 90) {
       bucket = 'NPA';
     }
+  }
+  if (rangeMatch) {
+    const startDay = parseInt(rangeMatch[1], 10);
+    const endDay = parseInt(rangeMatch[2], 10);
+    bucket = startDay >= 60 || endDay >= 60 ? 'SMA-2' : startDay >= 30 || endDay >= 30 ? 'SMA-1' : 'SMA-0';
   }
 
   // 90+ DPD in India are NPAs. Move out of soft-treatment queue and tag as 'NPA: legal / recovery track'
@@ -613,20 +625,51 @@ export function normalizeRow(r) {
   }
 
   const priorityScore = r.priorityScore || r.risk || 50;
+  const promiseToPay = r.promiseToPay || (is90Plus ? 'Broken' : r.risk >= 75 ? 'Made' : r.risk >= 45 ? 'Kept' : 'Not made');
+  const lastContactAttempt = r.lastContactAttempt || (r.human ? 'Today · 09:05' : 'Today · 08:42');
+  const lastContactOutcome = r.lastContactOutcome || (is90Plus ? 'Escalated to recovery team' : r.human ? 'Needs officer review' : 'No answer · retry eligible');
+  const contactability = r.contactability || (r.human && /unreachable/i.test(r.intent || '') ? 'Unreachable' : 'Reachable');
+  const preferredLanguage = r.preferredLanguage || r.lang || (r.code === 'en' ? 'English' : 'English');
+  const consentStatus = r.consentStatus || 'On file';
+  const doNotContactFlags = r.doNotContactFlags || 'None recorded';
+  const displayProduct = String(r.product || '').replace(/^HOME_LOAN$/i, 'Home loan').replace(/_/g, ' ');
+  const cityParts = String(r.city || '').split(',').map((part) => part.trim()).filter(Boolean);
+  const displayCity = cityParts.length > 1 && cityParts.every((part) => part.toLowerCase() === cityParts[0].toLowerCase())
+    ? cityParts[0]
+    : cityParts.join(', ');
+  const displayChannel = String(channel || '').replace(/^whatsapp$/i, 'WhatsApp');
+  const displayDpd = rangeMatch
+    ? bucket
+    : dpdStr.replace(/^dpd\b/i, 'DPD');
+  const displayAction = String(action || '').replace(/^Safety gate:\s*always HITL$/i, 'Human review required');
+  const safeAction = !/^field\b/i.test(displayChannel) && /^field visit\b/i.test(displayAction)
+    ? `${displayChannel || 'Phone'} follow-up`
+    : displayAction;
+  const displayIntent = String(intent || '').replace(/^Safety gate:\s*always HITL$/i, 'Human review required');
 
   return {
     ...r,
+    product: displayProduct,
+    city: displayCity,
+    dpd: displayDpd,
     priorityScore,
     bucket,
     human,
-    action,
-    channel,
-    intent,
+    action: safeAction,
+    channel: displayChannel,
+    intent: displayIntent,
     tone,
     segment: segment || (r.product && r.product.toLowerCase().includes('salaried') ? 'Salaried' : 'Self-employed'),
     bureauScore,
     creditScore: creditScore || bureauScore,
-    outstanding
+    outstanding,
+    promiseToPay,
+    lastContactAttempt,
+    lastContactOutcome,
+    contactability,
+    preferredLanguage,
+    consentStatus,
+    doNotContactFlags
   };
 }
 

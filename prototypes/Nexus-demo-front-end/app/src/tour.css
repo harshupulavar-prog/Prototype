@@ -12,17 +12,6 @@
 .check-row { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--text-2); }
 .check-row input { width: 18px; height: 18px; accent-color: var(--accent); }
 
-.tour-invite {
-  position: fixed; right: 24px; bottom: 24px; z-index: 40; width: min(460px, calc(100% - 32px));
-  display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 16px; border-radius: 16px;
-  background: var(--elev); border: 1px solid var(--line-strong);
-  box-shadow: var(--pop-shadow);
-}
-.tour-invite-icon { width: 38px; height: 38px; border-radius: 11px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent-text); }
-.tour-invite-text { flex: 1; display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
-.tour-invite-text strong { font-size: 14.5px; }
-.tour-invite-text span { font-size: 12.5px; color: var(--muted); }
-
 .tour-layer { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
 .tour-dim { position: absolute; inset: 0; background: var(--scrim); }
 .tour-hole {
@@ -102,7 +91,6 @@
 .finish-item.on svg { color: var(--warn); }
 
 @media (max-width: 860px) {
-  .tour-invite { right: 16px; bottom: 16px; flex-wrap: wrap; }
   .tour-preview, .finish-list ul { grid-template-columns: 1fr; }
   .tour-modal { padding: 22px; }
   .tour-modal h2 { font-size: 24px; }
