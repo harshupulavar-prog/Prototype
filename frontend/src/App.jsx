@@ -7,6 +7,7 @@ import PrototypeDetails from './pages/PrototypeDetails';
 import HostedPrototype from './pages/HostedPrototype';
 import MyInstances from './pages/MyInstances';
 
+
 const guard = (page) => <ProtectedRoute>{page}</ProtectedRoute>;
 
 export const App = () => (
