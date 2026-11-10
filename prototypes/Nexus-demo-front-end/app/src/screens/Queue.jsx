@@ -8,6 +8,8 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
   const [filter, setFilter] = useState('all');
   const [sortDir, setSortDir] = useState('desc');
   const [working, setWorking] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const isNPA = (r) => r.bucket === 'NPA' || (r.dpd && (parseInt(r.dpd, 10) > 90 || r.dpd.includes('181') || r.dpd.includes('184') || r.dpd.includes('207') || r.dpd.includes('210')));
   const rows = D.rows.map((r, i) => {
@@ -42,6 +44,9 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
   const sorted = [...shown].sort((a, b) =>
     sortDir === 'asc' ? a.priorityScore - b.priorityScore : b.priorityScore - a.priorityScore
   );
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pagedRows = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const firstHuman = rows.find((r) => r.human).i;
 
   const doBulk = () => {
@@ -85,7 +90,7 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
           ['predue', 'Pre-due (0 DPD)', predue],
           ['team', 'With your team', humans]
         ].map(([id, label, n]) => (
-          <button key={id} type="button" role="tab" aria-selected={filter === id} className={'tab' + (filter === id ? ' active' : '')} onClick={() => setFilter(id)}>
+          <button key={id} type="button" role="tab" aria-selected={filter === id} className={'tab' + (filter === id ? ' active' : '')} onClick={() => { setFilter(id); setPage(1); }}>
             {label}<span className="tab-n">{n}</span>
           </button>
         ))}
@@ -97,13 +102,14 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
         <div className="table" role="table" aria-label="Work queue">
           <div className="tr th q-grid" role="row">
             <span role="columnheader">Borrower</span>
+            <span role="columnheader">Product</span>
             <span role="columnheader">Bucket (SMA / NPA)</span>
-            <span role="columnheader">Overdue & EMI</span>
+            <span role="columnheader">Overdue amount</span>
             <button
               type="button"
               role="columnheader"
               className="th-sort-btn"
-              onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
+              onClick={() => { setSortDir((d) => (d === 'desc' ? 'asc' : 'desc')); setPage(1); }}
               title="Click to sort by Priority Score"
             >
               Priority Score <Icon name={sortDir === 'desc' ? 'arrowDown' : 'arrowUp'} size={12} />
@@ -112,7 +118,7 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
             <span role="columnheader">Nexus suggests</span>
             <span role="columnheader">Status</span>
           </div>
-          {sorted.map((r, k) => {
+          {pagedRows.map((r, k) => {
             const tone = TONE[r.tone];
             const change = approved[r.i];
             return (
@@ -125,8 +131,12 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
                       {r.id && <span className="case-id-tag mono">{r.id}</span>}
                       <button type="button" className="link-name" onClick={() => openCase(r.i)}>{r.name}</button>
                     </div>
-                    <span className="sub">{r.product} · {r.city} · {r.segment || 'Thin file'}</span>
+                    <span className="sub">{r.city} · {r.segment || 'Thin file'}</span>
                   </div>
+                </div>
+                <div className="cell-2" role="cell">
+                  <strong>{r.product}</strong>
+                  <span className="sub">EMI {money(r.emi)}</span>
                 </div>
                 <div className="cell-2" role="cell"><strong>{r.bucket}</strong><span className="sub">{r.dpd}</span></div>
                 <div className="cell-2 q-amount-cell" role="cell">
@@ -136,10 +146,7 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
                     </strong>
                     <span className="q-overdue-lbl">overdue</span>
                   </div>
-                  <div className="sub mono q-secondary-amounts">
-                    <span>EMI {money(r.emi)}</span>
-                    <span className="muted q-bal-sub" title="Total loan outstanding (secondary)">· Bal {money(r.outstanding)}</span>
-                  </div>
+                  <span className="sub mono q-bal-sub" title="Total loan outstanding (secondary)">Bal {money(r.outstanding)}</span>
                 </div>
                 <div className="risk" role="cell">
                   <span className="mono strong" style={{ color: riskColor(r.priorityScore) }}>{r.priorityScore}</span>
@@ -159,13 +166,17 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
                   ) : r.human ? (
                     <Pill tone={TONE.warn} icon="lock">With your team</Pill>
                   ) : r.done ? (
-                    <Pill tone={TONE.ok} icon="check" className="nx-pop">
-                      {change && change.reason
-                        ? 'Changed'
-                        : (change && change.action && change.action.toLowerCase().includes('escalat')) || r.action.toLowerCase().includes('escalat')
-                        ? 'Escalated'
-                        : 'Approved'}
-                    </Pill>
+                    change && change.reason ? (
+                      <span title="Officer chose a different action than the AI suggested">
+                        <Pill tone={TONE.ok} icon="check" className="nx-pop">Overridden</Pill>
+                      </span>
+                    ) : (
+                      <Pill tone={TONE.ok} icon="check" className="nx-pop">
+                        {(change && change.action && change.action.toLowerCase().includes('escalat')) || r.action.toLowerCase().includes('escalat')
+                          ? 'Escalated'
+                          : 'Approved'}
+                      </Pill>
+                    )
                   ) : (
                     <button
                       type="button"
@@ -180,6 +191,20 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
               </div>
             );
           })}
+        </div>
+        <div className="queue-pagination" aria-label="Queue pagination">
+          <span className="muted small">
+            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sorted.length)} of {sorted.length}
+          </span>
+          <div className="pager">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              Previous
+            </button>
+            <span className="mono small">Page {currentPage} of {pageCount}</span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={currentPage === pageCount}>
+              Next
+            </button>
+          </div>
         </div>
       </section>
       <p className="footnote">Every action is checked against contact hours, consent and contact limits before it is scheduled. {settings.US ? 'Texts include STOP to opt out.' : 'Messages go out in the borrower’s preferred language.'}</p>

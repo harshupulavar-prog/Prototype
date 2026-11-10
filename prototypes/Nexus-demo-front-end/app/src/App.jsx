@@ -67,7 +67,6 @@ function CommandCentre({ settings }) {
   const [blueprintOpen, setBlueprintOpen] = useState(settings.panel === 'blueprint');
   const [logoOk, setLogoOk] = useState(true);
   const [tourOpen, setTourOpen] = useState(settings.tour);
-  const [invite, setInvite] = useState(false);
 
   useEffect(() => {
     document.title = `${prospect} · AI Collections Command Centre`;
@@ -79,21 +78,6 @@ function CommandCentre({ settings }) {
     const ogDesc = document.querySelector('meta[property="og:description"]');
     if (ogDesc) ogDesc.setAttribute('content', desc);
   }, [prospect]);
-
-  // A small, dismissable invitation. It never blocks the screen.
-  useEffect(() => {
-    if (settings.tour || settings.quiet) return;
-    let seen = false;
-    try { seen = localStorage.getItem('nx-tour-invite') === 'done'; } catch { /* storage blocked */ }
-    if (seen) return;
-    const id = setTimeout(() => setInvite(true), 1800);
-    return () => clearTimeout(id);
-  }, [settings.tour, settings.quiet]);
-
-  const closeInvite = () => {
-    setInvite(false);
-    try { localStorage.setItem('nx-tour-invite', 'done'); } catch { /* storage blocked */ }
-  };
 
   useEffect(() => {
     const id = setInterval(() => setT((x) => x + 1), 1000);
@@ -130,7 +114,7 @@ function CommandCentre({ settings }) {
     if (!targetNav.some((n) => n.id === screen)) go(targetNav[0].id);
   };
 
-  const startTour = () => { closeInvite(); setBlueprintOpen(false); setRole('manager'); setTourOpen(true); };
+  const startTour = () => { setBlueprintOpen(false); setRole('manager'); setTourOpen(true); };
 
   const nav = NAV[role] || NAV.manager;
 
@@ -376,20 +360,6 @@ function CommandCentre({ settings }) {
             </div>
           </footer>
         </main>
-
-        {invite && !tourOpen && (
-          <div className="tour-invite nx-pop" role="dialog" aria-label="Guided tour invitation">
-            <span className="tour-invite-icon"><Icon name="spark" size={18} /></span>
-            <span className="tour-invite-text">
-              <strong>New here? Take the 2-minute tour.</strong>
-              <span>See what the AI does and how much team time it frees up.</span>
-            </span>
-            <span className="row-gap tight">
-              <button type="button" className="btn btn-primary btn-sm" onClick={startTour}>Start tour</button>
-              <button type="button" className="icon-btn sm" onClick={closeInvite} aria-label="Dismiss"><Icon name="x" size={15} /></button>
-            </span>
-          </div>
-        )}
 
         <Tour open={tourOpen} onClose={() => setTourOpen(false)} D={D} fmt={fmt} settings={settings} live={live}
           screen={screen} sel={sel} go={go} openCase={openCase} openBlueprint={() => setBlueprintOpen(true)}
