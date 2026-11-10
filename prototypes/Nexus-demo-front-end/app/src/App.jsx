@@ -69,12 +69,12 @@ function CommandCentre({ settings }) {
   const [tourOpen, setTourOpen] = useState(settings.tour);
 
   useEffect(() => {
-    document.title = `${prospect} · AI Collections Command Centre`;
+    document.title = `${prospect}, AI Collections Command Centre`;
     const desc = `AI early-warning signals, automated omnichannel treatments, and predictive borrower resolution for ${prospect}. Measurable outcomes: fewer roll-forwards, fewer field visits, higher cure rate.`;
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute('content', desc);
     const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.setAttribute('content', `${prospect} · AI Collections Command Centre`);
+    if (ogTitle) ogTitle.setAttribute('content', `${prospect}, AI Collections Command Centre`);
     const ogDesc = document.querySelector('meta[property="og:description"]');
     if (ogDesc) ogDesc.setAttribute('content', desc);
   }, [prospect]);
@@ -295,7 +295,7 @@ function CommandCentre({ settings }) {
                 <Icon name="spark" size={14} />Guided tour
               </button>
               <a
-                href={`mailto:${settings.contact || 'contact@demo.kaara.ai'}?subject=${encodeURIComponent('Talk to Kaara - Collections Command Centre')}`}
+                href={`mailto:${settings.contact || 'contact@demo.kaara.ai'}?subject=${encodeURIComponent('Talk to Kaara, Collections Command Centre')}`}
                 className="chip chip-btn chip-talk"
                 title="Talk to Kaara Technologies"
               >
@@ -343,7 +343,7 @@ function CommandCentre({ settings }) {
               </div>
               <div className="footer-actions">
                 <a
-                  href={`mailto:${settings.contact || 'contact@demo.kaara.ai'}?subject=${encodeURIComponent('Talk to Kaara - Collections Command Centre')}`}
+                  href={`mailto:${settings.contact || 'contact@demo.kaara.ai'}?subject=${encodeURIComponent('Talk to Kaara, Collections Command Centre')}`}
                   className="btn btn-primary btn-sm footer-cta"
                 >
                   <Icon name="mail" size={14} /> Talk to Kaara
