@@ -4,7 +4,7 @@ How PrototypeHub is built, how prototypes are stored and hosted, how a hosted co
 
 ---
 
-## 1. Overview
+## 1. Overvie
 
 PrototypeHub is a Kaara-branded portal. A signed-in user:
 
