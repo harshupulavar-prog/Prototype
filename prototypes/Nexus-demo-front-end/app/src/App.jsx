@@ -18,6 +18,7 @@ import Rules from './screens/Rules.jsx';
 import Models from './screens/Models.jsx';
 import Users from './screens/Users.jsx';
 import LinkBuilder from './screens/LinkBuilder.jsx';
+import Login from './screens/Login.jsx';
 
 // Light by default. The sun/moon button switches it, and the choice is
 // remembered on this device.
@@ -54,9 +55,23 @@ function CommandCentre({ settings }) {
   const P = useMemo(() => people(US), [US]);
   const S = useMemo(() => sources(US, D.hfc), [US, D.hfc]);
 
+  const [authenticated, setAuthenticated] = useState(() => {
+    try {
+      return localStorage.getItem('nexus_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const [t, setT] = useState(0);
   const [screen, setScreen] = useState(screenFromHash);
-  const [role, setRole] = useState(() => roleFor(screenFromHash(), 'manager'));
+  const [role, setRole] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nexus_role');
+      if (saved && ROLES.some((r) => r.id === saved)) return saved;
+    } catch {}
+    return roleFor(screenFromHash(), 'manager');
+  });
   const [lens, setLens] = useState(settings.lens);
   const [sel, setSel] = useState(0);
   const [approved, setApproved] = useState({});
@@ -108,8 +123,31 @@ function CommandCentre({ settings }) {
     window.scrollTo({ top: 0 });
   }, []);
 
+  const handleLogin = (chosenRole) => {
+    if (chosenRole) {
+      setRole(chosenRole);
+      const targetNav = NAV[chosenRole] || NAV.manager;
+      if (!targetNav.some((n) => n.id === screen)) {
+        setScreen(targetNav[0].id);
+      }
+    }
+    setAuthenticated(true);
+    try {
+      localStorage.setItem('nexus_auth', 'true');
+      if (chosenRole) localStorage.setItem('nexus_role', chosenRole);
+    } catch { /* storage blocked */ }
+  };
+
+  const handleSignOut = () => {
+    setAuthenticated(false);
+    try {
+      localStorage.removeItem('nexus_auth');
+    } catch { /* storage blocked */ }
+  };
+
   const switchRole = (r) => {
     setRole(r);
+    try { localStorage.setItem('nexus_role', r); } catch {}
     const targetNav = NAV[r] || NAV.manager;
     if (!targetNav.some((n) => n.id === screen)) go(targetNav[0].id);
   };
@@ -193,6 +231,10 @@ function CommandCentre({ settings }) {
   };
 
   const ctx = { settings, D, fmt, t, now, go, pending, bulk, approved, approveRow, bulkApprove, openCase, live, log, you, P, logAction: addLog, role, openBlueprint: () => setBlueprintOpen(true) };
+
+  if (!authenticated) {
+    return <Login settings={settings} P={P} onLogin={handleLogin} />;
+  }
 
   return (
     <LensContext.Provider value={{ on: lens, sources: S }}>
@@ -308,6 +350,15 @@ function CommandCentre({ settings }) {
                 </span>
                 <span className="user-avatar">{me.initials}</span>
               </span>
+              <button
+                type="button"
+                className="btn-signout"
+                onClick={handleSignOut}
+                title="Sign out of Command Centre"
+              >
+                <Icon name="x" size={12} />
+                <span className="hide-sm">Sign out</span>
+              </button>
             </div>
           </header>
 
