@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: prototypehub-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-protohub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-protohub_secure_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-prototypehub}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U protohub -d prototypehub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: prototypehub-backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://protohub:protohub_secure_pass@postgres:5432/prototypehub
+      - SECRET_KEY=${SECRET_KEY:-protohub_production_jwt_secret_key_2026}
+      - FRONTEND_URL=http://localhost:5173
+      - BACKEND_URL=http://localhost:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./prototypes:/app/prototypes:ro
+      - ./generated:/app/generated
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

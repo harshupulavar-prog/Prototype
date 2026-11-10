@@ -1,0 +1,22 @@
+{
+  "id": "crm",
+  "name": "DealFlow Enterprise CRM",
+  "description": "A modern customer relationship management application for high-velocity sales pipelines, lead scoring, account relationships, and revenue forecasting.",
+  "category": "CRM & Sales",
+  "version": "4.0.1",
+  "technologies": [
+    "React",
+    "FastAPI",
+    "PostgreSQL",
+    "Tailwind CSS"
+  ],
+  "features": [
+    "Visual drag-and-drop sales pipeline (Kanban)",
+    "Automated lead capture & AI enrichment scoring",
+    "Company stakeholder mapping & interaction history",
+    "Deal stage gate milestones & contract values",
+    "Weighted pipeline revenue forecasting"
+  ],
+  "thumbnail": "/thumbnails/crm.png",
+  "entry_point": "frontend"
+}

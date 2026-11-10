@@ -1,0 +1,22 @@
+{
+  "id": "hrms",
+  "name": "Enterprise HRMS Suite",
+  "description": "An enterprise human resource management system for employee lifecycle administration, automated attendance, global payroll, leave approvals, and recruitment pipelines.",
+  "category": "Human Resources",
+  "version": "3.1.2",
+  "technologies": [
+    "React",
+    "FastAPI",
+    "PostgreSQL",
+    "Tailwind CSS"
+  ],
+  "features": [
+    "Headcount metrics & attrition analysis",
+    "Employee 360 directory & org chart",
+    "Biometric attendance & clock-in tracking",
+    "Leave management & manager approval workflow",
+    "Automated payroll calculation with tax withholdings"
+  ],
+  "thumbnail": "/thumbnails/hrms.png",
+  "entry_point": "frontend"
+}

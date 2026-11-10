@@ -1,0 +1,22 @@
+# Dependencies / virtual envs
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Build output, logs, secrets
+dist/
+*.log
+.env
+*.local
+
+# Runtime data created by the backend (regenerated at startup)
+generated/
+*.db
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

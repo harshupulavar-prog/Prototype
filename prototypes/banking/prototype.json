@@ -1,0 +1,23 @@
+{
+  "id": "banking",
+  "name": "Digital Banking Platform",
+  "description": "A comprehensive digital banking platform featuring multi-currency accounts, real-time transaction ledger, beneficiary routing, fund transfers, and corporate treasury dashboards.",
+  "category": "Banking",
+  "version": "2.4.0",
+  "technologies": [
+    "React",
+    "FastAPI",
+    "PostgreSQL",
+    "Tailwind CSS",
+    "Recharts"
+  ],
+  "features": [
+    "Corporate treasury & liquidity dashboard",
+    "Multi-currency accounts & IBAN management",
+    "Real-time transaction ledger & categorization",
+    "Instant SEPA & Wire fund transfers",
+    "Audit trail & automated KYC limits"
+  ],
+  "thumbnail": "/thumbnails/banking.png",
+  "entry_point": "frontend"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "insurance",
+  "name": "OmniSure Insurance Portal",
+  "description": "An end-to-end insurance management application for multi-line policy administration, rapid claims processing, customer portfolios, and automated renewals.",
+  "category": "Insurance",
+  "version": "1.9.5",
+  "technologies": [
+    "React",
+    "FastAPI",
+    "PostgreSQL",
+    "Tailwind CSS"
+  ],
+  "features": [
+    "Gross written premiums & active loss ratio charts",
+    "Multi-line commercial, health & auto policy catalog",
+    "First Notice of Loss (FNOL) claims processing",
+    "Adjuster assignment & document evidence ledger",
+    "Automated renewal quotes & churn risk scoring"
+  ],
+  "thumbnail": "/thumbnails/insurance.png",
+  "entry_point": "frontend"
+}

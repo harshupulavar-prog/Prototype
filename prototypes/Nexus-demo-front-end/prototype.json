@@ -1,0 +1,36 @@
+{
+  "id": "nexus-demo",
+  "name": "Nexus Collections Command Centre",
+  "description": "A clickable AI collections command centre for lenders: overview, work queue, case view, live calls, audit trail, a guided tour and role-based views. Front end only, with illustrative data.",
+  "category": "Collections & Lending",
+  "version": "1.0.0",
+  "technologies": [
+    "React",
+    "Vite"
+  ],
+  "features": [
+    "Portfolio overview with live-updating counters",
+    "Prioritised work queue with risk scores and reasons",
+    "Case view with drafted multilingual messages and approvals",
+    "Live AI call console with scripted transcripts",
+    "Tamper-evident style audit trail",
+    "Guided tour with time-saved estimate",
+    "Collections Officer, Collections Manager, Head of Collections, Internal Audit, and Admin views",
+    "Data sources, rules and model screens"
+  ],
+  "entry_point": "app",
+  "layout": {
+    "frontend_dir": "app",
+    "backend_dir": null,
+    "scaffold": false,
+    "exclude": [
+      "built-website",
+      "FRONT-END-AND-BACK-END.md"
+    ]
+  },
+  "branding_fields": [
+    "app_name",
+    "logo",
+    "primary_color"
+  ]
+}
