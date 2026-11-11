@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Upload, Trash2, CheckCircle2, Copy, Check, Code2, ArrowRight } from 'lucide-react';
+import { X, Upload, Trash2, CheckCircle2, Copy, Check, Code2, ArrowRight, ExternalLink, Download, AlertCircle, RefreshCw, Mail } from 'lucide-react';
 import { Button, ErrorNotice } from './ui';
 import { hostingService } from '../services/hostingService';
+import { authService } from '../services/authService';
 
 const MAX_LOGO_BYTES = 1024 * 1024; // 1 MB, matches backend
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp'];
@@ -77,9 +78,15 @@ function BrandPreview({ name, logo, primary, secondary, hasSecondary }) {
   );
 }
 
-function instanceFolderName(path = '') {
-  return path.split(/[\\/]/).filter(Boolean).pop() || '';
-}
+const DEPLOYMENT_STEPS = {
+  DRAFT: { label: 'Saving instance configuration...', progress: 15 },
+  PENDING: { label: 'Initializing isolated build worker...', progress: 30 },
+  BUILDING: { label: 'Compiling production bundle with npm & Vite...', progress: 65 },
+  UPLOADING: { label: 'Uploading assets to Cloudflare R2 & Vercel...', progress: 85 },
+  DEPLOYING: { label: 'Finalizing deployment & verifying live URL...', progress: 95 },
+  READY: { label: 'Deployment successful! Application is live.', progress: 100 },
+  FAILED: { label: 'Build or deployment failed', progress: 100 },
+};
 
 export default function HostModal({ prototype, onClose }) {
   const navigate = useNavigate();
@@ -89,22 +96,76 @@ export default function HostModal({ prototype, onClose }) {
   const has = (f) => fields.includes(f);
 
   const [appName, setAppName] = useState('');
+  const [notificationEmail, setNotificationEmail] = useState(() => authService.getCurrentUser()?.email || '');
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY);
   const [secondary, setSecondary] = useState(DEFAULT_SECONDARY);
   const [logo, setLogo] = useState(null);
   const [logoName, setLogoName] = useState('');
   const [error, setError] = useState('');
 
-  const [phase, setPhase] = useState('form'); // form | hosting | done
+  const [phase, setPhase] = useState('form'); // form | hosting | done | failed
+  const [deployStep, setDeployStep] = useState('DRAFT');
   const [instance, setInstance] = useState(null);
   const [copied, setCopied] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [notice, setNotice] = useState('');
 
   const colorsValid = (!has('primary_color') || HEX.test(primary)) && (!has('secondary_color') || HEX.test(secondary));
   const previewName = appName.trim() || prototype.name;
   const safePrimary = HEX.test(primary) ? primary : DEFAULT_PRIMARY;
   const safeSecondary = HEX.test(secondary) ? secondary : DEFAULT_SECONDARY;
+
+  // Poll deployment status
+  useEffect(() => {
+    let timer = null;
+    let attempts = 0;
+    const maxAttempts = 60; // 2 minutes
+
+    if (phase === 'hosting' && instance?.instance_id) {
+      const poll = async () => {
+        try {
+          attempts += 1;
+          const statusData = await hostingService.getDeploymentStatus(instance.instance_id);
+          const currentStatus = statusData.deployment_status || 'PENDING';
+          setDeployStep(currentStatus);
+
+          if (currentStatus === 'READY') {
+            setInstance((prev) => ({
+              ...prev,
+              ...statusData,
+              live_url: statusData.live_url || prev.live_url,
+            }));
+            setPhase('done');
+            return;
+          }
+
+          if (currentStatus === 'FAILED') {
+            setError(statusData.build_error || 'Automated build failed. Please check your configuration.');
+            setPhase('failed');
+            return;
+          }
+
+          if (attempts >= maxAttempts) {
+            // If timed out, show done with available URL or fallback
+            setPhase('done');
+            return;
+          }
+
+          timer = setTimeout(poll, 2000);
+        } catch (err) {
+          console.warn('Status poll error:', err);
+          timer = setTimeout(poll, 3000);
+        }
+      };
+
+      timer = setTimeout(poll, 1500);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [phase, instance?.instance_id]);
 
   const handleFile = (e) => {
     const file = e.target.files?.[0];
@@ -127,30 +188,59 @@ export default function HostModal({ prototype, onClose }) {
     if (!colorsValid) return setError('Colors must be hex values like #E91D2B.');
     setError('');
     setPhase('hosting');
+    setDeployStep('DRAFT');
+
     try {
+      // 1. Create Instance record in DB and upload logo to Cloudflare R2
       const created = await hostingService.createHostedInstance(prototype.prototype_id, {
         app_name: appName.trim(),
+        notification_email: notificationEmail.trim() || undefined,
         primary_color: has('primary_color') ? primary.toUpperCase() : null,
         secondary_color: has('secondary_color') ? secondary.toUpperCase() : null,
         logo,
       });
       setInstance(created);
-      setPhase('done');
+
+      // 2. Start automated build & deployment in isolated worker
+      setDeployStep('PENDING');
+      await hostingService.hostInstance(created.instance_id);
     } catch (err) {
       setError(err.response?.data?.detail || 'We could not host this prototype. Please try again.');
       setPhase('form');
     }
   };
 
-  const instanceUrl = instance ? `${window.location.origin}/hosted/${instance.instance_id}` : '';
+  const liveUrl = instance?.live_url || `${window.location.origin}/hosted/${instance?.instance_id}`;
 
   const copyUrl = async () => {
     try {
-      await navigator.clipboard.writeText(instanceUrl);
+      await navigator.clipboard.writeText(liveUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setNotice('Copy is blocked by the browser. Select the link and copy it manually.');
+    }
+  };
+
+  const downloadSource = async () => {
+    if (!instance?.instance_id) return;
+    setDownloading(true);
+    setNotice('');
+    try {
+      const blob = await hostingService.downloadInstanceSource(instance.instance_id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${instance.instance_id}_customized_source.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setNotice('Source code ZIP downloaded successfully.');
+    } catch (err) {
+      setNotice('Download failed. You can also view and export from your instances dashboard.');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -168,6 +258,7 @@ export default function HostModal({ prototype, onClose }) {
   };
 
   const busy = phase === 'hosting';
+  const stepInfo = DEPLOYMENT_STEPS[deployStep] || DEPLOYMENT_STEPS.PENDING;
 
   return (
     <div
@@ -185,12 +276,12 @@ export default function HostModal({ prototype, onClose }) {
         <div className="flex items-start justify-between border-b border-line px-6 py-5">
           <div>
             <h2 className="text-lg font-semibold text-charcoal">
-              {phase === 'done' ? 'Your instance is ready' : `Host ${prototype.name}`}
+              {phase === 'done' ? 'Your live instance is ready' : `Host ${prototype.name}`}
             </h2>
             <p className="mt-0.5 text-sm text-charcoal-500">
               {phase === 'done'
-                ? 'It is a private copy that belongs to you.'
-                : 'Make it yours. You can see the result before you host.'}
+                ? 'Your prototype has been customized, built, and deployed independently.'
+                : 'Customize your branding. Preview updates live before hosting.'}
             </p>
           </div>
           <button
@@ -203,15 +294,15 @@ export default function HostModal({ prototype, onClose }) {
           </button>
         </div>
 
-        {/* Form */}
-        {phase !== 'done' && (
+        {/* Form View */}
+        {(phase === 'form' || phase === 'failed') && (
           <form onSubmit={handleSubmit}>
             <div className="grid gap-8 px-6 py-6 md:grid-cols-2">
               <div className="space-y-5">
                 {has('app_name') && (
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-charcoal" htmlFor="app-name">
-                      App name
+                      Application Name
                     </label>
                     <input
                       id="app-name"
@@ -226,9 +317,30 @@ export default function HostModal({ prototype, onClose }) {
                   </div>
                 )}
 
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-charcoal" htmlFor="notify-email">
+                    Email Address for Deployment Link
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="notify-email"
+                      type="email"
+                      value={notificationEmail}
+                      onChange={(e) => setNotificationEmail(e.target.value)}
+                      placeholder="developer@company.com"
+                      disabled={busy}
+                      className="field pl-9"
+                    />
+                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-charcoal-400" />
+                  </div>
+                  <p className="mt-1 text-xs text-charcoal-400">
+                    We will send the live deployment URL and interactive code workspace link directly to this email.
+                  </p>
+                </div>
+
                 {has('logo') && (
                   <div>
-                    <span className="mb-1.5 block text-sm font-medium text-charcoal">Logo</span>
+                    <span className="mb-1.5 block text-sm font-medium text-charcoal">Brand Logo (Cloudflare R2)</span>
                     <div className="flex items-center gap-2">
                       <Button type="button" variant="secondary" size="sm" onClick={() => fileRef.current?.click()} disabled={busy}>
                         <Upload className="h-4 w-4" />
@@ -252,7 +364,7 @@ export default function HostModal({ prototype, onClose }) {
                       )}
                       <input ref={fileRef} type="file" accept={ACCEPTED.join(',')} onChange={handleFile} className="hidden" />
                     </div>
-                    <p className="mt-1.5 text-xs text-charcoal-400">PNG, JPEG or WebP, up to 1 MB. Optional.</p>
+                    <p className="mt-1.5 text-xs text-charcoal-400">PNG, JPEG or WebP, up to 1 MB. Stored securely in R2.</p>
                   </div>
                 )}
 
@@ -271,7 +383,7 @@ export default function HostModal({ prototype, onClose }) {
               </div>
 
               <div>
-                <span className="mb-1.5 block text-sm font-medium text-charcoal">Preview</span>
+                <span className="mb-1.5 block text-sm font-medium text-charcoal">Live Theme Preview</span>
                 <BrandPreview
                   name={previewName}
                   logo={logo}
@@ -288,61 +400,120 @@ export default function HostModal({ prototype, onClose }) {
               </div>
             )}
 
-            {busy && (
-              <div className="px-6 pb-5" role="status" aria-live="polite">
-                <div className="h-1.5 overflow-hidden rounded-full bg-line">
-                  <div className="h-full w-1/3 animate-[slide_1.4s_ease-in-out_infinite] rounded-full bg-kaara-500" />
-                </div>
-                <p className="mt-2 text-sm text-charcoal-500">
-                  Setting up your private copy and applying your branding. This usually takes a few seconds.
-                </p>
-              </div>
-            )}
-
             <div className="flex items-center justify-end gap-3 border-t border-line bg-surface/60 px-6 py-4">
               <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
                 Cancel
               </Button>
               <Button type="submit" loading={busy} disabled={!colorsValid}>
-                {busy ? 'Hosting…' : 'Host prototype'}
+                {phase === 'failed' ? 'Retry Host & Deploy' : 'Host Prototype'}
               </Button>
             </div>
           </form>
         )}
 
-        {/* Success */}
+        {/* Progress View */}
+        {phase === 'hosting' && (
+          <div className="px-6 py-10" role="status" aria-live="polite">
+            <div className="mx-auto max-w-lg text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-kaara-50 text-kaara-600">
+                <RefreshCw className="h-7 w-7 animate-spin" />
+              </div>
+              <h3 className="text-lg font-semibold text-charcoal">{stepInfo.label}</h3>
+              <p className="mt-1.5 text-sm text-charcoal-500">
+                Building an isolated temporary container and provisioning your live application deployment on Vercel.
+              </p>
+
+              <div className="mt-6">
+                <div className="flex items-center justify-between text-xs text-charcoal-400 mb-1.5 font-medium">
+                  <span>Step: {deployStep}</span>
+                  <span>{stepInfo.progress}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-line">
+                  <div
+                    className="h-full rounded-full bg-kaara-500 transition-all duration-500"
+                    style={{ width: `${stepInfo.progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Done / Success View */}
         {phase === 'done' && instance && (
           <div className="px-6 py-6">
             <div className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
               <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-emerald-600" />
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-emerald-900">{instance.prototype_name} is hosted</div>
+                <div className="text-sm font-semibold text-emerald-900">
+                  {instance.app_name || instance.prototype_name} is successfully deployed!
+                </div>
                 <div className="truncate text-sm text-emerald-800">
-                  Project folder: <span className="font-medium">{instanceFolderName(instance.instance_path)}</span>
+                  Unique instance ID: <span className="font-mono font-medium">{instance.instance_id}</span>
                 </div>
               </div>
             </div>
 
-            <label className="mb-1.5 mt-5 block text-sm font-medium text-charcoal">Instance link</label>
-            <div className="flex items-center gap-2">
-              <input readOnly value={instanceUrl} onFocus={(e) => e.target.select()} className="field font-mono text-xs" />
-              <Button variant="secondary" onClick={copyUrl} aria-label="Copy link">
-                {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                {copied ? 'Copied' : 'Copy'}
-              </Button>
+            {(notificationEmail || instance.notification_email) && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-2.5 text-xs text-blue-900">
+                <Mail className="h-4 w-4 flex-none text-blue-600" />
+                <span>
+                  Deployment access link dispatched to <strong className="font-semibold">{notificationEmail || instance.notification_email}</strong>
+                </span>
+              </div>
+            )}
+
+            {/* Live URL Card */}
+            <div className="mt-6 rounded-2xl border border-line bg-surface/50 p-5">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-charcoal-500">
+                Live Deployment URL
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  readOnly
+                  value={liveUrl}
+                  onFocus={(e) => e.target.select()}
+                  className="field flex-1 font-mono text-sm bg-white"
+                />
+                <Button variant="secondary" onClick={copyUrl} aria-label="Copy live link">
+                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
+                <a
+                  href={liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-kaara-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-kaara-700 transition"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open Live App
+                </a>
+              </div>
             </div>
 
             {notice && <p className="mt-3 text-sm text-charcoal-500">{notice}</p>}
 
-            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-              <Button variant="secondary" onClick={() => navigate(`/hosted/${instance.instance_id}`)}>
-                View instance
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button onClick={openInVSCode} loading={opening}>
-                <Code2 className="h-4 w-4" />
-                Open in VS Code
-              </Button>
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={downloadSource} loading={downloading}>
+                  <Download className="h-4 w-4" />
+                  Download Source ZIP
+                </Button>
+                <Button variant="secondary" size="sm" onClick={openInVSCode} loading={opening}>
+                  <Code2 className="h-4 w-4" />
+                  Open in VS Code
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={onClose}>
+                  Close
+                </Button>
+                <Button onClick={() => navigate(`/hosted/${instance.instance_id}`)}>
+                  View Instance Dashboard
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         )}

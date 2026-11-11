@@ -105,7 +105,7 @@ def main():
     env = {**os.environ, "PYTHONUNBUFFERED": "1", "BROWSER": "none"}
     procs = []
     if BACKEND:
-        be_port = free_port(8001)
+        be_port = free_port(8000)
         env["VITE_API_URL"] = f"http://127.0.0.1:{be_port}"
         procs.append(("backend", subprocess.Popen(
             [str(py), "-m", "uvicorn", "main:app", "--reload", "--port", str(be_port)],

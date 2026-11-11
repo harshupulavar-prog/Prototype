@@ -78,8 +78,8 @@ export default function Catalog() {
           hostingService.getMyInstances().catch(() => null),
         ]);
         if (cancelled) return;
-        setAll(protos);
-        setInstances(mine);
+        setAll(Array.isArray(protos) ? protos : []);
+        setInstances(Array.isArray(mine) ? mine : null);
       } catch {
         if (!cancelled) setError('We could not load the prototypes. Make sure the backend is running and try again.');
       } finally {
@@ -91,11 +91,15 @@ export default function Catalog() {
     };
   }, []);
 
-  const categories = useMemo(() => ['All', ...new Set(all.map((p) => p.category))], [all]);
+  const categories = useMemo(() => {
+    const list = Array.isArray(all) ? all : [];
+    return ['All', ...new Set(list.map((p) => p.category).filter(Boolean))];
+  }, [all]);
 
   const visible = useMemo(() => {
+    const list = Array.isArray(all) ? all : [];
     const q = search.trim().toLowerCase();
-    return all.filter((p) => {
+    return list.filter((p) => {
       if (category !== 'All' && p.category !== category) return false;
       if (!q) return true;
       return [p.name, p.description, p.category, ...(p.technologies || [])].some((v) => (v || '').toLowerCase().includes(q));
@@ -111,9 +115,9 @@ export default function Catalog() {
       <PageBody>
         {!loading && !error && (
           <div className="mb-6 inline-flex max-w-full flex-wrap items-center divide-x divide-line rounded-2xl border border-line bg-white py-4 shadow-card">
-            <Stat icon={Layers} value={all.length} label="Prototypes" />
-            <Stat icon={Tags} value={categories.length - 1} label="Categories" />
-            {instances && <Stat icon={PlayCircle} value={instances.length} label="Your instances" />}
+            <Stat icon={Layers} value={Array.isArray(all) ? all.length : 0} label="Prototypes" />
+            <Stat icon={Tags} value={Math.max(0, categories.length - 1)} label="Categories" />
+            {Array.isArray(instances) && <Stat icon={PlayCircle} value={instances.length} label="Your instances" />}
           </div>
         )}
 

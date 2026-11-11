@@ -16,7 +16,7 @@ export const App = () => (
       <Route path="/" element={guard(<Catalog />)} />
       <Route path="/prototypes/:id" element={guard(<PrototypeDetails />)} />
       <Route path="/my-instances" element={guard(<MyInstances />)} />
-      <Route path="/hosted/:instance_id" element={guard(<HostedPrototype />)} />
+      <Route path="/hosted/:instance_id" element={<HostedPrototype />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </BrowserRouter>

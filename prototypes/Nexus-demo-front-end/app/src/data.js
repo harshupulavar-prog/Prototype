@@ -624,11 +624,7 @@ export function normalizeRow(r) {
     }
   }
 
-  const factorTotal = Array.isArray(r.factors)
-    ? r.factors.reduce((total, [, contribution]) => total + Number(contribution || 0), 0)
-    : 0;
-  const normalizedRisk = r.hero && factorTotal > 0 ? factorTotal : (r.risk || 50);
-  const priorityScore = r.hero ? normalizedRisk : (r.priorityScore || normalizedRisk);
+  const priorityScore = r.priorityScore || r.risk || 50;
   const promiseToPay = r.promiseToPay || (is90Plus ? 'Broken' : r.risk >= 75 ? 'Made' : r.risk >= 45 ? 'Kept' : 'Not made');
   const lastContactAttempt = r.lastContactAttempt || (r.human ? 'Today · 09:05' : 'Today · 08:42');
   const lastContactOutcome = r.lastContactOutcome || (is90Plus ? 'Escalated to recovery team' : r.human ? 'Needs officer review' : 'No answer · retry eligible');
@@ -656,7 +652,6 @@ export function normalizeRow(r) {
     product: displayProduct,
     city: displayCity,
     dpd: displayDpd,
-    risk: normalizedRisk,
     priorityScore,
     bucket,
     human,
@@ -880,19 +875,19 @@ function baseData(US, prospect) {
     teamLead: US ? 'M. Chen' : 'A. Iyer',
     buckets: US
       ? [
-          { label: 'Pre-due', sub: 'Current · 0 DPD (due in 10 days)', n: 3480, amt: 1300000 },
-          { label: 'SMA-0', sub: '1 to 30 DPD · Special Mention 0', n: 5920, amt: 2400000 },
-          { label: 'SMA-1', sub: '31 to 60 DPD · Special Mention 1', n: 1710, amt: 900000 },
-          { label: 'SMA-2', sub: '61 to 90 DPD · Special Mention 2', n: 540, amt: 340000 },
-          { label: 'NPA', sub: '90+ DPD · Charge-off / Legal track', n: 260, amt: 210000 }
-        ]
+        { label: 'Pre-due', sub: 'Current · 0 DPD (due in 10 days)', n: 3480, amt: 1300000 },
+        { label: 'SMA-0', sub: '1 to 30 DPD · Special Mention 0', n: 5920, amt: 2400000 },
+        { label: 'SMA-1', sub: '31 to 60 DPD · Special Mention 1', n: 1710, amt: 900000 },
+        { label: 'SMA-2', sub: '61 to 90 DPD · Special Mention 2', n: 540, amt: 340000 },
+        { label: 'NPA', sub: '90+ DPD · Charge-off / Legal track', n: 260, amt: 210000 }
+      ]
       : [
-          { label: 'Pre-due', sub: 'Current · 0 DPD (due in 10 days)', n: 1240, amt: 21400000 },
-          { label: 'SMA-0', sub: '1 to 30 DPD · Special Mention 0', n: 2180, amt: 38900000 },
-          { label: 'SMA-1', sub: '31 to 60 DPD · Special Mention 1', n: 640, amt: 15600000 },
-          { label: 'SMA-2', sub: '61 to 90 DPD · Special Mention 2', n: 210, amt: 7400000 },
-          { label: 'NPA', sub: '90+ DPD · Legal / Recovery track', n: 96, amt: 5100000 }
-        ],
+        { label: 'Pre-due', sub: 'Current · 0 DPD (due in 10 days)', n: 1240, amt: 21400000 },
+        { label: 'SMA-0', sub: '1 to 30 DPD · Special Mention 0', n: 2180, amt: 38900000 },
+        { label: 'SMA-1', sub: '31 to 60 DPD · Special Mention 1', n: 640, amt: 15600000 },
+        { label: 'SMA-2', sub: '61 to 90 DPD · Special Mention 2', n: 210, amt: 7400000 },
+        { label: 'NPA', sub: '90+ DPD · Legal / Recovery track', n: 96, amt: 5100000 }
+      ],
     regions: US
       ? [['Texas', 71], ['Florida', 66], ['California', 63], ['Georgia', 58], ['Ohio', 55]]
       : [['Maharashtra', 74], ['Tamil Nadu', 71], ['Karnataka', 66], ['Uttar Pradesh', 61], ['West Bengal', 57]],

@@ -6,7 +6,12 @@ export const prototypeService = {
     if (category && category !== 'All') params.category = category;
     if (search) params.search = search;
     const response = await api.get('/prototypes', { params });
-    return response.data;
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.prototypes)) return data.prototypes;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.data)) return data.data;
+    return [];
   },
 
   async getPrototypeById(prototypeId) {

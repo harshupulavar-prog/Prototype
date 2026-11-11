@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.database.base import Base
-from app.database.session import engine, SessionLocal
+from app.database.session import engine, SessionLocal, run_migrations
 import app.models  # Ensure all models are registered
 from app.models.user import User
 from app.core.security import get_password_hash
@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     (settings.GENERATED_DIR / "exports").mkdir(parents=True, exist_ok=True)
 
     Base.metadata.create_all(bind=engine)
+    run_migrations()
     logger.info("Database tables initialized.")
 
     db = SessionLocal()
