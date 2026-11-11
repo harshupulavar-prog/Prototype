@@ -510,6 +510,18 @@ a { color: inherit; }
 @keyframes sweep { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.queue-tools { display: flex; justify-content: flex-end; }
+.queue-search {
+  display: flex; align-items: center; gap: 8px; width: min(100%, 300px);
+  padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel); color: var(--faint);
+}
+.queue-search:focus-within { border-color: var(--accent-line); color: var(--accent-text); }
+.queue-search input {
+  width: 100%; min-width: 0; padding: 9px 0; border: 0; outline: 0;
+  background: transparent; color: var(--text); font: inherit; font-size: 13px;
+}
+.queue-search input::placeholder { color: var(--faint); }
 .tab {
   display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px;
   border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 700; font-size: 14px;

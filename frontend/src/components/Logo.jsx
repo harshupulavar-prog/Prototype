@@ -13,7 +13,7 @@ export default function Logo({ className = 'h-8' }) {
       <img
         src={sources[idx]}
         alt="Kaara"
-        className={`${className} w-auto`}
+        className={className}
         onError={() => setIdx((i) => i + 1)}
       />
     );

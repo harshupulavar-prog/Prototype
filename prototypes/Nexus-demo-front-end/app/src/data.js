@@ -624,7 +624,11 @@ export function normalizeRow(r) {
     }
   }
 
-  const priorityScore = r.priorityScore || r.risk || 50;
+  const factorTotal = Array.isArray(r.factors)
+    ? r.factors.reduce((total, [, contribution]) => total + Number(contribution || 0), 0)
+    : 0;
+  const normalizedRisk = r.hero && factorTotal > 0 ? factorTotal : (r.risk || 50);
+  const priorityScore = r.hero ? normalizedRisk : (r.priorityScore || normalizedRisk);
   const promiseToPay = r.promiseToPay || (is90Plus ? 'Broken' : r.risk >= 75 ? 'Made' : r.risk >= 45 ? 'Kept' : 'Not made');
   const lastContactAttempt = r.lastContactAttempt || (r.human ? 'Today · 09:05' : 'Today · 08:42');
   const lastContactOutcome = r.lastContactOutcome || (is90Plus ? 'Escalated to recovery team' : r.human ? 'Needs officer review' : 'No answer · retry eligible');
@@ -652,6 +656,7 @@ export function normalizeRow(r) {
     product: displayProduct,
     city: displayCity,
     dpd: displayDpd,
+    risk: normalizedRisk,
     priorityScore,
     bucket,
     human,

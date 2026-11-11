@@ -73,7 +73,8 @@ function CommandCentre({ settings }) {
     return roleFor(screenFromHash(), 'manager');
   });
   const [lens, setLens] = useState(settings.lens);
-  const [sel, setSel] = useState(0);
+  const initialHeroIndex = D.rows.findIndex((row) => row.hero);
+  const [sel, setSel] = useState(initialHeroIndex >= 0 ? initialHeroIndex : 0);
   const [approved, setApproved] = useState({});
   const [bulk, setBulk] = useState(false);
   const [mode, setMode] = useState('idle');

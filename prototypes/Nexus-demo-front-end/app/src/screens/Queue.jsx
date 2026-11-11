@@ -9,6 +9,7 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
   const [sortDir, setSortDir] = useState('desc');
   const [working, setWorking] = useState(false);
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
   const pageSize = 10;
 
   const isNPA = (r) => r.bucket === 'NPA' || (r.dpd && (parseInt(r.dpd, 10) > 90 || r.dpd.includes('181') || r.dpd.includes('184') || r.dpd.includes('207') || r.dpd.includes('210')));
@@ -25,13 +26,20 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
       done: bulk || !!approved[i]
     };
   });
-  const sma0 = rows.filter((r) => r.bucket === 'SMA-0').length;
-  const sma1 = rows.filter((r) => r.bucket === 'SMA-1').length;
-  const sma2 = rows.filter((r) => r.bucket === 'SMA-2').length;
-  const npas = rows.filter((r) => isNPA(r) || r.bucket === 'NPA').length;
-  const predue = rows.filter((r) => r.bucket === 'Pre-due' || r.bucket === 'Current').length;
-  const humans = rows.filter((r) => r.human).length;
-  const shown = rows.filter((r) => {
+  const normalizedQuery = query.trim().toLowerCase();
+  const searched = rows.filter((r) => {
+    if (!normalizedQuery) return true;
+    return [r.id, r.name, r.city, r.product, r.intent, r.bucket]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+  });
+  const sma0 = searched.filter((r) => r.bucket === 'SMA-0').length;
+  const sma1 = searched.filter((r) => r.bucket === 'SMA-1').length;
+  const sma2 = searched.filter((r) => r.bucket === 'SMA-2').length;
+  const npas = searched.filter((r) => isNPA(r) || r.bucket === 'NPA').length;
+  const predue = searched.filter((r) => r.bucket === 'Pre-due' || r.bucket === 'Current').length;
+  const humans = searched.filter((r) => r.human).length;
+  const shown = searched.filter((r) => {
     if (filter === 'all') return true;
     if (filter === 'sma0') return r.bucket === 'SMA-0';
     if (filter === 'sma1') return r.bucket === 'SMA-1';
@@ -79,6 +87,20 @@ export default function Queue({ D, fmt, settings, pending, bulk, approved, appro
         )}
         {working && <div className="sweep" aria-hidden="true" />}
       </section>
+
+      <div className="queue-tools">
+        <label className="queue-search">
+          <Icon name="search" size={16} />
+          <span className="sr-only">Search cases</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => { setQuery(event.target.value); setPage(1); }}
+            placeholder="Search cases"
+            aria-label="Search cases"
+          />
+        </label>
+      </div>
 
       <div className="tabs" role="tablist" aria-label="Filter the queue">
         {[

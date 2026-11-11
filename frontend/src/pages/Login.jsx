@@ -39,7 +39,7 @@ export default function Login() {
   return (
     <div className="grid min-h-screen bg-white lg:grid-cols-2">
       <div className="flex flex-col px-6 py-8 sm:px-12 lg:px-16">
-        <Logo className="h-10" />
+        <Logo className="h-8 w-32 object-contain object-left" />
 
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">
           <h1 className="text-3xl font-bold tracking-tight text-charcoal">Welcome back</h1>
