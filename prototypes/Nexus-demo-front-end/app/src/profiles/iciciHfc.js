@@ -111,8 +111,8 @@ export function iciciHfcData(prospect) {
         ],
         policyReason: {
           title: 'High exposure requires manager review',
-          statedReason: 'High exposure always needs manager review',
-          detail: 'Stated reason on screen: SMA-0 (2 DPD) early-warning watch with overdue ₹56,800. While NBA predicts 94% cure with soft-touch restructuring, housing finance policy mandates supervisor review before contact.',
+          statedReason: 'High-exposure accounts mandate supervisor review before automated outreach.',
+          detail: 'SMA-0 (2 DPD) early-warning watch with overdue ₹56,800. While NBA predicts 94% cure with soft-touch restructuring, housing finance policy mandates supervisor review before contact.',
           cureComparison: {
             softTouch: 94,
             standardNotice: 40,

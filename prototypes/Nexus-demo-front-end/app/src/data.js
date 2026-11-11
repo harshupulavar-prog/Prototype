@@ -79,8 +79,8 @@ const ROWS_IN = [
     creditStory: 'This pattern (thin-file borrower with no bureau history, missing salary credit, personal loan, Madurai) triggered early delinquency rules. Collections intelligence advises alternative Account Aggregator cash-flow underwriting for thin-file applicants.',
     policyReason: {
       title: 'High exposure requires manager review',
-      statedReason: 'High exposure always needs manager review',
-      detail: 'Stated reason on screen: SMA-0 (2 DPD) early-warning watch with ₹28,400 overdue. NBA simulation predicts 94% cure with soft-touch outreach; policy requires supervisor review before automated dispatch.',
+      statedReason: 'High-exposure accounts mandate supervisor review before automated outreach.',
+      detail: 'SMA-0 (2 DPD) early-warning watch with ₹28,400 overdue. Next-Best-Action simulation predicts 94% cure with soft-touch outreach, but credit governance policy routes high loan balances for supervisor review before automated dispatch.',
       cureComparison: {
         softTouch: 94,
         standardNotice: 38,
@@ -320,8 +320,8 @@ const ROWS_US = [
     creditStory: 'This pattern triggered early warning delinquency rules. Collections intelligence recommends alternative cash-flow underwriting for thin-file applicants.',
     policyReason: {
       title: 'High exposure requires manager review',
-      statedReason: 'High exposure always needs manager review',
-      detail: 'Stated reason on screen: SMA-0 (2 DPD) early-warning watch with $824 overdue. While NBA predicts 94% cure with a soft-touch restructuring call, governance policy mandates manager sign-off before dispatch.',
+      statedReason: 'High-exposure accounts mandate supervisor review before automated outreach.',
+      detail: 'SMA-0 (2 DPD) early-warning watch with $824 overdue. While NBA predicts 94% cure with a soft-touch restructuring call, governance policy mandates manager sign-off before dispatch.',
       cureComparison: {
         softTouch: 94,
         standardNotice: 36,

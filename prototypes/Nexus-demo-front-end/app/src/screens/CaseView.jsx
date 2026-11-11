@@ -260,7 +260,7 @@ export default function CaseView({ settings, D, fmt, sel, setSel, go, mode, setM
                   <strong>{r.policyReason.title}</strong>
                 </div>
                 <div className="policy-stated-reason">
-                  <strong>Stated reason on screen: </strong>
+                  <strong>Policy Governance Rule: </strong>
                   <span>{r.policyReason.statedReason}</span>
                 </div>
                 <p className="policy-detail">{r.policyReason.detail}</p>
