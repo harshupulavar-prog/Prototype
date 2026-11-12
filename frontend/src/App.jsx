@@ -6,6 +6,7 @@ import Catalog from './pages/Catalog';
 import PrototypeDetails from './pages/PrototypeDetails';
 import HostedPrototype from './pages/HostedPrototype';
 import MyInstances from './pages/MyInstances';
+import OpenInVSCode from './pages/OpenInVSCode';
 
 const guard = (page) => <ProtectedRoute>{page}</ProtectedRoute>;
 
@@ -17,6 +18,7 @@ export const App = () => (
       <Route path="/prototypes/:id" element={guard(<PrototypeDetails />)} />
       <Route path="/my-instances" element={guard(<MyInstances />)} />
       <Route path="/hosted/:instance_id" element={<HostedPrototype />} />
+      <Route path="/open-in-vscode/:instance_id" element={guard(<OpenInVSCode />)} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </BrowserRouter>

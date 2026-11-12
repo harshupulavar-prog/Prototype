@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Upload, Trash2, CheckCircle2, Copy, Check, Code2, ArrowRight, ExternalLink, Download, AlertCircle, RefreshCw, Mail } from 'lucide-react';
+import { X, Upload, Trash2, CheckCircle2, Copy, Check, ArrowRight, ExternalLink, Download, AlertCircle, RefreshCw, Mail } from 'lucide-react';
 import { Button, ErrorNotice } from './ui';
 import { hostingService } from '../services/hostingService';
 import { authService } from '../services/authService';
@@ -107,7 +107,6 @@ export default function HostModal({ prototype, onClose }) {
   const [deployStep, setDeployStep] = useState('DRAFT');
   const [instance, setInstance] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [opening, setOpening] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -241,19 +240,6 @@ export default function HostModal({ prototype, onClose }) {
       setNotice('Download failed. You can also view and export from your instances dashboard.');
     } finally {
       setDownloading(false);
-    }
-  };
-
-  const openInVSCode = async () => {
-    setOpening(true);
-    setNotice('');
-    try {
-      await hostingService.openInVSCodeDirectly(instance.instance_id);
-      setNotice('Opening in VS Code…');
-    } catch {
-      if (instance.vscode_open_folder_url) window.location.href = instance.vscode_open_folder_url;
-    } finally {
-      setOpening(false);
     }
   };
 
@@ -498,10 +484,6 @@ export default function HostModal({ prototype, onClose }) {
                 <Button variant="secondary" size="sm" onClick={downloadSource} loading={downloading}>
                   <Download className="h-4 w-4" />
                   Download Source ZIP
-                </Button>
-                <Button variant="secondary" size="sm" onClick={openInVSCode} loading={opening}>
-                  <Code2 className="h-4 w-4" />
-                  Open in VS Code
                 </Button>
               </div>
 

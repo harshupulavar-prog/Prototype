@@ -6,16 +6,23 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
   },
   timeout: 15000,
 });
 
-// Request interceptor to attach JWT token
+// Request interceptor to attach JWT token and cache buster
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Prevent browser from returning cached HTML from previously crashed or conflicting instances
+    if (config.method === 'get') {
+      config.params = { ...config.params, _t: Date.now() };
     }
     return config;
   },
